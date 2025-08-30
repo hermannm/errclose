@@ -1,3 +1,5 @@
+// Package errclose provides a single function, [errclose.Close], for handling errors when closing
+// resources.
 package errclose
 
 import (
