@@ -76,6 +76,79 @@ func TestNilCloseErrorWithExistingError(t *testing.T) {
 	assertEqual(t, err, errFallibleOperation, "error")
 }
 
+func TestClosef(t *testing.T) {
+	var file *mockFile
+
+	useFile := func() (returnedErr error) {
+		file = openFileWithCloseError()
+		defer errclose.Closef(file, &returnedErr, "file at path %s", "/example/path")
+
+		return nil
+	}
+
+	err := useFile()
+	assertEqual(t, file.closeWasCalled, true, "file.closeWasCalled")
+	assertEqual(
+		t,
+		err.Error(),
+		"failed to close file at path /example/path: close error",
+		"error string",
+	)
+	assertEqual(t, errors.Is(err, file.closeError), true, "errors.Is result")
+}
+
+func TestClosefWithExistingError(t *testing.T) {
+	var file *mockFile
+
+	useFile := func() (returnedErr error) {
+		file = openFileWithCloseError()
+		defer errclose.Closef(file, &returnedErr, "file at path %s", "/example/path")
+
+		return fallibleOperation()
+	}
+
+	err := useFile()
+	assertEqual(t, file.closeWasCalled, true, "file.closeWasCalled")
+	assertEqual(
+		t,
+		err.Error(),
+		"operation failed (and failed to close file at path /example/path: close error)",
+		"error string",
+	)
+	assertEqual(t, errors.Is(err, file.closeError), true, "errors.Is(closeError)")
+	assertEqual(t, errors.Is(err, errFallibleOperation), true, "errors.Is(errFallibleOperation)")
+}
+
+func TestClosefWithoutCloseError(t *testing.T) {
+	var file *mockFile
+
+	useFile := func() (returnedErr error) {
+		file = openFileWithoutCloseError()
+		defer errclose.Closef(file, &returnedErr, "file at path %s", "/example/path")
+
+		return nil
+	}
+
+	err := useFile()
+	assertEqual(t, file.closeWasCalled, true, "file.closeWasCalled")
+	assertEqual(t, err, nil, "error")
+}
+
+func TestClosefWithoutCloseErrorWithExistingError(t *testing.T) {
+	var file *mockFile
+
+	useFile := func() (returnedErr error) {
+		file = openFileWithoutCloseError()
+		defer errclose.Closef(file, &returnedErr, "file at path %s", "/example/path")
+
+		return fallibleOperation()
+	}
+
+	err := useFile()
+	assertEqual(t, file.closeWasCalled, true, "file.closeWasCalled")
+	assertEqual(t, err, errFallibleOperation, "error")
+}
+
 type mockFile struct {
 	closeWasCalled bool
 	closeError     error

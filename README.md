@@ -63,10 +63,10 @@ func example() (returnedErr error) {
 
 ## Usage
 
-This package provides a single function, `errclose.Close`. You'll typically call it in a `defer`
-statement, giving it a resource (something implementing `Close() error`) and a pointer to a named
-error return value. When your function exits, `errclose.Close` closes the given resource, and if
-there's an error, it will update the error returned by your function to include the close error.
+`errclose.Close` is the central function provided by this package. You'll typically call it in a
+`defer` statement, giving it a resource (something implementing `Close() error`) and a pointer to a
+named error return value. When your function exits, `errclose.Close` closes the given resource, and
+if there's an error, it will update the error returned by your function to include the close error.
 
 <!-- @formatter:off -->
 ```go
@@ -110,6 +110,27 @@ on the following format:
 The error formatting uses [`fmt.Errorf`](https://pkg.go.dev/fmt#Errorf) with the `%w` verb, so that
 the underlying errors can still be checked with [`errors.Is`](https://pkg.go.dev/errors#Is) and
 [`errors.As`](https://pkg.go.dev/errors#As).
+
+If you want to format the resource name, you can use `errclose.Closef`, which takes a format string
+and args instead of just a plain string for the resource name. The formatting is only performed if
+there is a close error, so this is more efficient than calling `fmt.Sprintf` yourself and passing
+the result to `errclose.Close`, as that will perform formatting even when there's no error.
+
+<!-- @formatter:off -->
+```go
+func example(filePath string) (returnedErr error) {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return err
+	}
+	// If there's a close error, returnedErr will be set to:
+	// failed to close file at path <filePath>: <close error>
+	defer errclose.Closef(file, &returnedErr, "file at path %s", filePath)
+
+	// Use file
+}
+```
+<!-- @formatter:on -->
 
 ## Developer's guide
 
